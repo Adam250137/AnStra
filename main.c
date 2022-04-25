@@ -57,8 +57,9 @@ GPIO_TypeDef* KO;
 
 int test = 2000;
 
-char dataT [] = "testowy tekst";
+char dataT[70];
 uint32_t Len;
+uint8_t buffer[64];
 
 /* USER CODE END PV */
 
@@ -162,10 +163,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  char text[] = "Hello word";
   while (1)
   {
 	  
 	if(buffer[0]!='\0'){
+	sprintf(dataT,"copy: %s \n\r", (char *) buffer);
 	CDC_Transmit_FS((uint8_t *) dataT, strlen(dataT));
 	memset(buffer, '\0', 64);
 	}

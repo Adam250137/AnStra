@@ -70,6 +70,15 @@ static void MX_I2C1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#include "lcd.h"
+
+void blink(void){
+	HAL_GPIO_TogglePin(Test_LED_GPIO_Port, Test_LED_Pin);
+	HAL_Delay(100);
+	HAL_GPIO_TogglePin(Test_LED_GPIO_Port, Test_LED_Pin);
+	HAL_Delay(100);
+}
+
 // Serwo 1
 void init_PWM(void){
 	TIM3->CCR3 = 1500;
@@ -142,33 +151,25 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
+  lcd_init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  char text[] = "Hello word";
   while (1)
   {
-	
-	  kb = keyboard();
-	  if( kb == 0 ) TIM3->CCR3 = 500;
-	  if( kb == 1 ) TIM3->CCR3 = 1000;
-	  if( kb == 2 ) TIM3->CCR3 = 1500;
-	  if( kb == 3 ) TIM3->CCR3 = 2000;
-	  if( kb == 4 ) TIM3->CCR3 = 2500;
-	  if( kb == 5 ) TIM3->CCR3 = 3000;
-	  if( kb == 6 ) TIM3->CCR3 = 3500;
-	  if( kb == 7 ) TIM3->CCR3 = 4000;
+	  lcd_display(0b000);
+	  lcd_clear();
+	  for(int i=0;i<4;i++){
+		  lcd_line(i);
+		  lcd_send_string(text);
+	  }
+	  lcd_display(0b100);
+	  HAL_Delay(300);
 
-	  TIM3->CCR3 = 500;
-	  HAL_Delay(1000);
-	  TIM3->CCR3 = 1000;
-	  	  HAL_Delay(1000);
-	  	TIM3->CCR3 = 1500;
-	  		  HAL_Delay(1000);
-	  		TIM3->CCR3 = 2000;
-	  			  HAL_Delay(1000);
-  
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

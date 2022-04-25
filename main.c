@@ -48,6 +48,14 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 
+// klawiatura
+int K[8];
+GPIO_TypeDef* KI;
+GPIO_TypeDef* KO;
+
+int test = 2000;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,6 +74,35 @@ static void MX_I2C1_Init(void);
 void init_PWM(void){
 	TIM3->CCR3 = 1500;
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+}
+
+void init_keyboard(void){
+	K[0] = K1_Pin;
+	K[1] = K2_Pin;
+	K[2] = K3_Pin;
+	K[3] = K4_Pin;
+	K[4] = K5_Pin;
+	K[5] = K6_Pin;
+	K[6] = K7_Pin;
+	K[7] = K8_Pin;
+
+	KI = K1_GPIO_Port;
+	KO = K5_GPIO_Port;
+}
+
+// Odczytaj numer przycisku klikniętego na klawiaturze (odczytany tylko o najniższym numerze)
+// Numerowanie od lewego górnego rogu, od 0
+int keyboard(void){
+	for(int i=4; i<8; i++){
+		HAL_GPIO_TogglePin(KO, K[i]);
+		for(int j=0; j<4; j++)
+			if( HAL_GPIO_ReadPin(KI, K[j]) ){
+				HAL_GPIO_TogglePin(KO, K[i]);
+				return (i-4)+j*4;
+			}
+		HAL_GPIO_TogglePin(KO, K[i]);
+	}
+	return -1;
 }
 
 /* USER CODE END 0 */
@@ -105,13 +142,12 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	init_PWM();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  char text[] = "Hello word";
   while (1)
   {
     /* USER CODE END WHILE */

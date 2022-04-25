@@ -23,7 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdio.h"
+#include "string.h"
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +57,8 @@ GPIO_TypeDef* KO;
 
 int test = 2000;
 
+char dataT [] = "testowy tekst";
+uint32_t Len;
 
 /* USER CODE END PV */
 
@@ -158,17 +162,13 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char text[] = "Hello word";
   while (1)
   {
-	  lcd_display(0b000);
-	  lcd_clear();
-	  for(int i=0;i<4;i++){
-		  lcd_line(i);
-		  lcd_send_string(text);
-	  }
-	  lcd_display(0b100);
-	  HAL_Delay(300);
+	  
+	if(buffer[0]!='\0'){
+	CDC_Transmit_FS((uint8_t *) dataT, strlen(dataT));
+	memset(buffer, '\0', 64);
+	}
 
     /* USER CODE END WHILE */
 

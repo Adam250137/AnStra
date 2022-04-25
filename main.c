@@ -147,9 +147,28 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char text[] = "Hello word";
   while (1)
   {
+	
+	  kb = keyboard();
+	  if( kb == 0 ) TIM3->CCR3 = 500;
+	  if( kb == 1 ) TIM3->CCR3 = 1000;
+	  if( kb == 2 ) TIM3->CCR3 = 1500;
+	  if( kb == 3 ) TIM3->CCR3 = 2000;
+	  if( kb == 4 ) TIM3->CCR3 = 2500;
+	  if( kb == 5 ) TIM3->CCR3 = 3000;
+	  if( kb == 6 ) TIM3->CCR3 = 3500;
+	  if( kb == 7 ) TIM3->CCR3 = 4000;
+
+	  TIM3->CCR3 = 500;
+	  HAL_Delay(1000);
+	  TIM3->CCR3 = 1000;
+	  	  HAL_Delay(1000);
+	  	TIM3->CCR3 = 1500;
+	  		  HAL_Delay(1000);
+	  		TIM3->CCR3 = 2000;
+	  			  HAL_Delay(1000);
+  
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

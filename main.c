@@ -51,6 +51,11 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 
+double target_latitude, target_longitude, target_height;
+char change = 0;
+char change_t = 0;
+uint8_t TxData[1000];
+
 // klawiatura
 int K[8];
 GPIO_TypeDef* KI;
@@ -72,10 +77,6 @@ char pos_stat = 0;
 double latitude;
 double longitude;
 double direction;
-
-double tlat;
-double tlong;
-double thight;
 
 // USB?
 char dataT[70];
@@ -310,6 +311,18 @@ int main(void)
 
   while (1)
   {
+	  sprintf((char*)TxData, "SEND_ANGLES s1 %d; s2 %d; SEND_TARGET latitude %f; longitude %f; height %f; \r\n",
+			  da, ha, target_latitude, target_longitude, target_height);
+	  CDC_Transmit_FS(TxData, strlen((char*)TxData));
+
+	  if( change ){
+		  height_angle(ha);
+		  direction_angle(da);
+		  if( status == 1 )
+			  display_angle();
+		  change = 0;
+	  }
+
 	  k = keyboard();
 	  if( k >= 0 && tmp == -1 ){
 		  if( status == 0 ){
@@ -335,11 +348,6 @@ int main(void)
 
 			  		lcd_line(pos_stat+1);
 			  	}
-
-			  if( k == 3 ){
-				  height_angle(45);
-				  direction_angle(-20);
-			  }
 			  save_input(k);
 		  }
 		  if( status == 2 ){
@@ -369,13 +377,13 @@ int main(void)
 				  double ret = get_input();
 
 				  if( pos_stat == 0 )
-					  tlat = ret;
+					  target_latitude = ret;
 
 				  if( pos_stat == 1 )
-					  tlong = ret;
+					  target_longitude = ret;
 
 				  if( pos_stat == 2 )
-					  thight = ret;
+					  target_height= ret;
 
 				  pos_stat++;
 				  if( pos_stat == 3 ){

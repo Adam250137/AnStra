@@ -23,7 +23,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include <string.h>
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,7 +50,7 @@
   */
 
 /* USER CODE BEGIN PRIVATE_TYPES */
-extern uint8_t buffer[64];
+
 /* USER CODE END PRIVATE_TYPES */
 
 /**
@@ -95,7 +95,14 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
+extern int ha;
+extern int da;
+extern char change, change_t;
+extern double latitude, longitude;
+double station_height;
 
+extern double target_latitude, target_longitude, target_height;
+extern uint8_t TxData[1000];
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -108,6 +115,7 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
   */
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
+
 /* USER CODE BEGIN EXPORTED_VARIABLES */
 
 /* USER CODE END EXPORTED_VARIABLES */
@@ -127,7 +135,13 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
+char* assign_value(char* position, char* num){
 
+	char* pos1 = strchr(position, ' ');
+	char* pos2 = strchr(pos1, ';');
+	strncpy(num, position, (size_t)(pos2-pos1));
+	return pos1;
+}
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**
@@ -153,6 +167,7 @@ static int8_t CDC_Init_FS(void)
   /* Set Application Buffers */
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
   /* USER CODE END 3 */
 }
@@ -259,11 +274,33 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+	char* num;
+
+	if(strstr((char*)Buf, "TOGGLE") != NULL){HAL_GPIO_TogglePin(Test_LED_GPIO_Port, Test_LED_Pin);}
+
+	else if(strstr((char*)Buf, "SET_ANGLES ") != NULL){
+		num = strtok ((char*)Buf," ");
+		if(num!=NULL){num = strtok(NULL, " "); da=atoi(num);}
+		if(num!=NULL){num = strtok(NULL, " "); ha=atoi(num);}
+		change = 1;
+	}
+
+	else if(strstr((char*)Buf, "SET_TARGET ") != NULL){
+		num = strtok ((char*)Buf," ");
+		if(num!=NULL){num = strtok(NULL, " "); target_latitude = atof(num);}
+		if(num!=NULL){num = strtok(NULL, " "); target_longitude = atof(num);}
+		if(num!=NULL){num = strtok(NULL, " "); target_height = atof(num);}
+		change_t = 1;
+	}
+
+	else if(strstr((char*)Buf, "GET_POSITION ") != NULL){
+		sprintf((char*)TxData, "SEND_POSITION latitude %f longitude %f height %f", latitude,
+				longitude, station_height);
+		CDC_Transmit_FS(TxData, strlen((char*)TxData));
+	}
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  if(strstr((char*)Buf,"toggle")!=NULL){HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);}
-  else{memcpy(buffer, Buf, (uint8_t) *Len);}
-  memset(Buf, '\0', strlen((char*)Buf));
   return (USBD_OK);
   /* USER CODE END 6 */
 }

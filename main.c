@@ -26,6 +26,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "math.h"
 #include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
@@ -77,6 +78,8 @@ char pos_stat = 0;
 double latitude;
 double longitude;
 double direction;
+
+int R = 6371;
 
 // USB?
 char dataT[70];
@@ -190,6 +193,27 @@ void set_ANSTRA_target(){
 	lcd_send_string(text);
 
 	lcd_line(1);
+}
+
+double my_acos( double x) {
+   return (-0.69813170079773212 * x * x - 0.87266462599716477) * x + 1.5707963267948966;
+}
+
+double my_atan(double x)
+{
+    return M_PI_4*x - x*(fabs(x) - 1)*(0.2447 + 0.0663*fabs(x));
+}
+
+void target_to_angle(){
+	double alf = (target_longitude - longitude)/180.0*M_PI;
+	double bet = (target_latitude - latitude)/180.0*M_PI;
+//
+	double satX = cos(alf)*cos(bet)*(target_height+R)-R;
+	double satY = sin(alf)*cos(bet)*(target_height+R);
+	double satZ = sin(bet)*(target_height+R);
+//
+	ha = my_acos( satX/( sqrt( satX*satX+satY*satY+satZ*satZ ) ) )/M_PI*180.0;
+	da = my_atan(satZ/satY)/M_PI*180.0;
 }
 
 void save_input( int k ){
@@ -341,6 +365,7 @@ int main(void)
 			  		pos_stat++;
 			  		if( pos_stat == 3 ){
 			  			status = 1;
+			  			lcd_display(0b100);
 			  			height_angle(ha);
 			  			direction_angle(da);
 			  			display_angle();
@@ -366,6 +391,7 @@ int main(void)
 					  direction_angle(da);
 					  display_angle();
 					  status = 1;
+					  lcd_display(0b100);
 				  }
 
 				  lcd_line( pos_stat+1 );
@@ -387,8 +413,10 @@ int main(void)
 
 				  pos_stat++;
 				  if( pos_stat == 3 ){
+					  target_to_angle();
 					  display_angle();
 					  status = 1;
+					  lcd_display(0b100);
 				  }
 
 				  lcd_line( pos_stat+1 );
@@ -398,6 +426,7 @@ int main(void)
 		  if( status == 1 ){
 			  if( k == 3 ){
 				  status = 2;
+				  lcd_display(0b111);
 				  pos_stat = 0;
 				  set_ANSTRA_angle();
 			  }
@@ -406,6 +435,7 @@ int main(void)
 				  set_ANSTRA_target();
 			  	  pos_stat = 0;
 				  status = 3;
+				  lcd_display(0b111);
 			  }
 		  }
 	  }

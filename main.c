@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
+#include "stdlib.h"
 #include "string.h"
 #include "usbd_cdc_if.h"
 /* USER CODE END Includes */
@@ -55,16 +56,27 @@ int K[8];
 GPIO_TypeDef* KI;
 GPIO_TypeDef* KO;
 
-int test = 2000;
+// height angle, direction angle
+int ha, da;
 
-<<<<<<< Updated upstream
+// LCD
+char text[21];
+char input[21];
+char* ptr = input;
+
+// status pozycji anteny
+char status = 0;
+// ilość otrzymanych zmiennych
+char pos_stat = 0;
+// N, E, kąt do równoleżnika
+double latitude;
+double longitude;
+double direction;
+
+// USB?
 char dataT[70];
 uint32_t Len;
 uint8_t buffer[64];
-=======
-char dataT [] = "testowy tekst";
-uint32_t Len;
->>>>>>> Stashed changes
 
 /* USER CODE END PV */
 
@@ -91,8 +103,25 @@ void blink(void){
 
 // Serwo 1
 void init_PWM(void){
-	TIM3->CCR3 = 1500;
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+	TIM3->CCR3 = 1500;
+
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+	TIM4->CCR4 = 1500;
+}
+
+// od 0 do 90 stopni, 0 oznacza pion
+void height_angle( int angle ){
+	ha = angle;
+	float tmp = 893.0/90.0;
+	TIM3->CCR3 = 1607 + tmp*angle;
+}
+
+// od -135 do 135
+void direction_angle( int angle ){
+	da = angle;
+	float tmp = 1000.0/135.0;
+	TIM3->CCR3 = 1500 + tmp*angle;
 }
 
 void init_keyboard(void){
@@ -122,6 +151,111 @@ int keyboard(void){
 		HAL_GPIO_TogglePin(KO, K[i]);
 	}
 	return -1;
+}
+
+void display_angle(){
+	lcd_clear();
+	sprintf(text, "Wysokość: %03d",ha);
+	lcd_send_string(text);
+
+	lcd_line(1);
+	sprintf(text, "Kierunek: %03d",da);
+	lcd_send_string(text);
+}
+
+void set_ANSTRA_pos(){
+	lcd_clear();
+	sprintf(text, "Pozycja ANSTRY:" );
+	lcd_send_string(text);
+
+	lcd_line(1);
+}
+
+void set_pos( int k ){
+	if( k == 15 ){
+		*ptr = '\0';
+		double ret = strtod(input,&ptr);
+		if( ptr == input )
+			blink();
+
+		ptr = input;
+		if( pos_stat == 0 )
+			latitude = ret;
+
+		if( pos_stat == 1 )
+			longitude = ret;
+
+		if( pos_stat == 2 )
+			direction = ret;
+
+		pos_stat++;
+		if( pos_stat == 3 ){
+			status = 1;
+			lcd_clear();
+			sprintf(text, "%.5lf",latitude );
+			lcd_send_string(text);
+			lcd_line(1);
+			sprintf(text, "%.5lf",longitude );
+			lcd_send_string(text);
+			lcd_line(2);
+			sprintf(text, "%.5lf",direction );
+			lcd_send_string(text);
+			lcd_line(3);
+		}
+
+		lcd_line(pos_stat+1);
+
+		return;
+	}
+
+	char c;
+	switch(k){
+		case 12:
+			c = '-';
+			break;
+		case 14:
+			c = '.';
+			break;
+		case 0:
+			c = '1';
+			break;
+		case 1:
+			c = '2';
+			break;
+		case 2:
+			c = '3';
+			break;
+		case 4:
+			c = '4';
+			break;
+		case 5:
+			c = '5';
+			break;
+		case 6:
+			c = '6';
+			break;
+		case 8:
+			c = '7';
+			break;
+		case 9:
+			c = '8';
+			break;
+		case 10:
+			c = '9';
+			break;
+		case 13:
+			c = '0';
+			break;
+		default:
+			c = -1;
+	}
+
+	if( c > 0 ){
+
+		lcd_send_data(c);
+		*(ptr++) = c;
+	}
+
 }
 
 /* USER CODE END 0 */
@@ -161,25 +295,32 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
+  init_keyboard();
+  init_PWM();
   lcd_init();
+
+  height_angle(90);
+  direction_angle(0);
+
+  set_ANSTRA_pos();
+
+  int k;
+  int tmp;
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char text[] = "Hello word";
   while (1)
   {
-	  
-	if(buffer[0]!='\0'){
-<<<<<<< Updated upstream
-	sprintf(dataT,"copy: %s \n\r", (char *) buffer);
-=======
->>>>>>> Stashed changes
-	CDC_Transmit_FS((uint8_t *) dataT, strlen(dataT));
-	memset(buffer, '\0', 64);
-	}
+	  tmp = keyboard();
+	  if( tmp >= 0 && k == -1 ){
+		  if( !status )
+			  set_pos(tmp);
+	  }
+	  k = tmp;
+	  HAL_Delay(100);
 
     /* USER CODE END WHILE */
 
@@ -316,6 +457,10 @@ static void MX_TIM3_Init(void)
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }

@@ -73,6 +73,10 @@ double latitude;
 double longitude;
 double direction;
 
+double tlat;
+double tlong;
+double thight;
+
 // USB?
 char dataT[70];
 uint32_t Len;
@@ -352,6 +356,29 @@ int main(void)
 				  if( pos_stat == 2 ){
 					  height_angle(ha);
 					  direction_angle(da);
+					  display_angle();
+					  status = 1;
+				  }
+
+				  lcd_line( pos_stat+1 );
+			  }
+			  save_input(k);
+		  }
+		  if( status == 3 ){
+			  if( k == 15 ){
+				  double ret = get_input();
+
+				  if( pos_stat == 0 )
+					  tlat = ret;
+
+				  if( pos_stat == 1 )
+					  tlong = ret;
+
+				  if( pos_stat == 2 )
+					  thight = ret;
+
+				  pos_stat++;
+				  if( pos_stat == 3 ){
 					  display_angle();
 					  status = 1;
 				  }

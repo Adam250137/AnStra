@@ -57,9 +57,14 @@ GPIO_TypeDef* KO;
 
 int test = 2000;
 
+<<<<<<< Updated upstream
 char dataT[70];
 uint32_t Len;
 uint8_t buffer[64];
+=======
+char dataT [] = "testowy tekst";
+uint32_t Len;
+>>>>>>> Stashed changes
 
 /* USER CODE END PV */
 
@@ -168,7 +173,10 @@ int main(void)
   {
 	  
 	if(buffer[0]!='\0'){
+<<<<<<< Updated upstream
 	sprintf(dataT,"copy: %s \n\r", (char *) buffer);
+=======
+>>>>>>> Stashed changes
 	CDC_Transmit_FS((uint8_t *) dataT, strlen(dataT));
 	memset(buffer, '\0', 64);
 	}

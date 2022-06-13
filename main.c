@@ -121,7 +121,7 @@ void height_angle( int angle ){
 void direction_angle( int angle ){
 	da = angle;
 	float tmp = 1000.0/135.0;
-	TIM3->CCR3 = 1500 + tmp*angle;
+	TIM3->CCR4 = 1500 + tmp*angle;
 }
 
 void init_keyboard(void){
@@ -155,7 +155,7 @@ int keyboard(void){
 
 void display_angle(){
 	lcd_clear();
-	sprintf(text, "Wysokość: %03d",ha);
+	sprintf(text, "Wysokosc: %03d",ha);
 	lcd_send_string(text);
 
 	lcd_line(1);
@@ -171,43 +171,23 @@ void set_ANSTRA_pos(){
 	lcd_line(1);
 }
 
-void set_pos( int k ){
-	if( k == 15 ){
-		*ptr = '\0';
-		double ret = strtod(input,&ptr);
-		if( ptr == input )
-			blink();
+void set_ANSTRA_angle(){
+	lcd_clear();
+	sprintf(text, "Ustaw kat:" );
+	lcd_send_string(text);
 
-		ptr = input;
-		if( pos_stat == 0 )
-			latitude = ret;
+	lcd_line(1);
+}
 
-		if( pos_stat == 1 )
-			longitude = ret;
+void set_ANSTRA_target(){
+	lcd_clear();
+	sprintf(text, "Ustaw cel:" );
+	lcd_send_string(text);
 
-		if( pos_stat == 2 )
-			direction = ret;
+	lcd_line(1);
+}
 
-		pos_stat++;
-		if( pos_stat == 3 ){
-			status = 1;
-			lcd_clear();
-			sprintf(text, "%.5lf",latitude );
-			lcd_send_string(text);
-			lcd_line(1);
-			sprintf(text, "%.5lf",longitude );
-			lcd_send_string(text);
-			lcd_line(2);
-			sprintf(text, "%.5lf",direction );
-			lcd_send_string(text);
-			lcd_line(3);
-		}
-
-		lcd_line(pos_stat+1);
-
-		return;
-	}
-
+void save_input( int k ){
 	char c;
 	switch(k){
 		case 12:
@@ -247,7 +227,7 @@ void set_pos( int k ){
 			c = '0';
 			break;
 		default:
-			c = -1;
+			c = 0;
 	}
 
 	if( c > 0 ){
@@ -255,7 +235,18 @@ void set_pos( int k ){
 		lcd_send_data(c);
 		*(ptr++) = c;
 	}
+}
 
+double get_input(){
+	char* tmp;
+	*ptr = '\0';
+	double ret = strtod(input,&tmp);
+	if( ptr != tmp ){
+		blink();
+	}
+
+	ptr = input;
+	return ret;
 }
 
 /* USER CODE END 0 */
@@ -299,8 +290,9 @@ int main(void)
   init_PWM();
   lcd_init();
 
-  height_angle(90);
-  direction_angle(0);
+  HAL_Delay(100);
+
+  ha = 90; da = 0;
 
   set_ANSTRA_pos();
 
@@ -314,12 +306,76 @@ int main(void)
 
   while (1)
   {
-	  tmp = keyboard();
-	  if( tmp >= 0 && k == -1 ){
-		  if( !status )
-			  set_pos(tmp);
+	  k = keyboard();
+	  if( k >= 0 && tmp == -1 ){
+		  if( status == 0 ){
+			  if( k == 15 ){
+			  		double ret = get_input();
+
+			  		if( pos_stat == 0 )
+			  			latitude = ret;
+
+			  		if( pos_stat == 1 )
+			  			longitude = ret;
+
+			  		if( pos_stat == 2 )
+			  			direction = ret;
+
+			  		pos_stat++;
+			  		if( pos_stat == 3 ){
+			  			status = 1;
+			  			height_angle(ha);
+			  			direction_angle(da);
+			  			display_angle();
+			  		}
+
+			  		lcd_line(pos_stat+1);
+			  	}
+
+			  if( k == 3 ){
+				  height_angle(45);
+				  direction_angle(-20);
+			  }
+			  save_input(k);
+		  }
+		  if( status == 2 ){
+			  if( k == 15 ){
+				  double ret = get_input();
+
+				  if( pos_stat == 0 )
+					  da = ret;
+
+				  if( pos_stat == 1 )
+					  ha = ret;
+
+				  pos_stat++;
+				  if( pos_stat == 2 ){
+					  height_angle(ha);
+					  direction_angle(da);
+					  display_angle();
+					  status = 1;
+				  }
+
+				  lcd_line( pos_stat+1 );
+			  }
+			  save_input(k);
+		  }
+		  if( status == 1 ){
+			  if( k == 3 ){
+				  status = 2;
+				  pos_stat = 0;
+				  set_ANSTRA_angle();
+			  }
+
+			  if( k == 7 ){
+				  set_ANSTRA_target();
+			  	  pos_stat = 0;
+				  status = 3;
+			  }
+		  }
 	  }
-	  k = tmp;
+
+	  tmp = k;
 	  HAL_Delay(100);
 
     /* USER CODE END WHILE */

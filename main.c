@@ -23,11 +23,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "lcd.h"
+#include "klawiatura.h"
+#include "utillib.h"
+#include "anstra.h"
+
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
-#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,39 +56,14 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 
-double target_latitude, target_longitude, target_height;
 char change = 0;
 char change_t = 0;
-uint8_t TxData[1000];
 
-// klawiatura
-int K[8];
-GPIO_TypeDef* KI;
-GPIO_TypeDef* KO;
-
-// height angle, direction angle
-int ha, da;
-
-// LCD
-char text[21];
-char input[21];
-char* ptr = input;
-
-// status pozycji anteny
-char status = 0;
-// ilość otrzymanych zmiennych
-char pos_stat = 0;
-// N, E, kąt do równoleżnika
-double latitude;
-double longitude;
-double direction;
-
-int R = 6371;
-
-// USB?
-char dataT[70];
-uint32_t Len;
-uint8_t buffer[64];
+//
+//// USB?
+//char dataT[70];
+//uint32_t Len;
+//uint8_t buffer[64];
 
 /* USER CODE END PV */
 
@@ -99,184 +78,6 @@ static void MX_I2C1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-#include "lcd.h"
-
-void blink(void){
-	HAL_GPIO_TogglePin(Test_LED_GPIO_Port, Test_LED_Pin);
-	HAL_Delay(100);
-	HAL_GPIO_TogglePin(Test_LED_GPIO_Port, Test_LED_Pin);
-	HAL_Delay(100);
-}
-
-// Serwo 1
-void init_PWM(void){
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-	TIM3->CCR3 = 1500;
-
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
-	TIM4->CCR4 = 1500;
-}
-
-// od 0 do 90 stopni, 0 oznacza pion
-void height_angle( int angle ){
-	ha = angle;
-	float tmp = 893.0/90.0;
-	TIM3->CCR3 = 1607 + tmp*angle;
-}
-
-// od -135 do 135
-void direction_angle( int angle ){
-	da = angle;
-	float tmp = 1000.0/135.0;
-	TIM3->CCR4 = 1500 + tmp*angle;
-}
-
-void init_keyboard(void){
-	K[0] = K1_Pin;
-	K[1] = K2_Pin;
-	K[2] = K3_Pin;
-	K[3] = K4_Pin;
-	K[4] = K5_Pin;
-	K[5] = K6_Pin;
-	K[6] = K7_Pin;
-	K[7] = K8_Pin;
-
-	KI = K1_GPIO_Port;
-	KO = K5_GPIO_Port;
-}
-
-// Odczytaj numer przycisku klikniętego na klawiaturze (odczytany tylko o najniższym numerze)
-// Numerowanie od lewego górnego rogu, od 0
-int keyboard(void){
-	for(int i=4; i<8; i++){
-		HAL_GPIO_TogglePin(KO, K[i]);
-		for(int j=0; j<4; j++)
-			if( HAL_GPIO_ReadPin(KI, K[j]) ){
-				HAL_GPIO_TogglePin(KO, K[i]);
-				return (i-4)+j*4;
-			}
-		HAL_GPIO_TogglePin(KO, K[i]);
-	}
-	return -1;
-}
-
-void display_angle(){
-	lcd_clear();
-	sprintf(text, "Wysokosc: %03d",ha);
-	lcd_send_string(text);
-
-	lcd_line(1);
-	sprintf(text, "Kierunek: %03d",da);
-	lcd_send_string(text);
-}
-
-void set_ANSTRA_pos(){
-	lcd_clear();
-	sprintf(text, "Pozycja ANSTRY:" );
-	lcd_send_string(text);
-
-	lcd_line(1);
-}
-
-void set_ANSTRA_angle(){
-	lcd_clear();
-	sprintf(text, "Ustaw kat:" );
-	lcd_send_string(text);
-
-	lcd_line(1);
-}
-
-void set_ANSTRA_target(){
-	lcd_clear();
-	sprintf(text, "Ustaw cel:" );
-	lcd_send_string(text);
-
-	lcd_line(1);
-}
-
-double my_acos( double x) {
-   return (-0.69813170079773212 * x * x - 0.87266462599716477) * x + 1.5707963267948966;
-}
-
-double my_atan(double x)
-{
-    return M_PI_4*x - x*(fabs(x) - 1)*(0.2447 + 0.0663*fabs(x));
-}
-
-void target_to_angle(){
-	double alf = (target_longitude - longitude)/180.0*M_PI;
-	double bet = (target_latitude - latitude)/180.0*M_PI;
-//
-	double satX = cos(alf)*cos(bet)*(target_height+R)-R;
-	double satY = sin(alf)*cos(bet)*(target_height+R);
-	double satZ = sin(bet)*(target_height+R);
-//
-	ha = my_acos( satX/( sqrt( satX*satX+satY*satY+satZ*satZ ) ) )/M_PI*180.0;
-	da = my_atan(satZ/satY)/M_PI*180.0;
-}
-
-void save_input( int k ){
-	char c;
-	switch(k){
-		case 12:
-			c = '-';
-			break;
-		case 14:
-			c = '.';
-			break;
-		case 0:
-			c = '1';
-			break;
-		case 1:
-			c = '2';
-			break;
-		case 2:
-			c = '3';
-			break;
-		case 4:
-			c = '4';
-			break;
-		case 5:
-			c = '5';
-			break;
-		case 6:
-			c = '6';
-			break;
-		case 8:
-			c = '7';
-			break;
-		case 9:
-			c = '8';
-			break;
-		case 10:
-			c = '9';
-			break;
-		case 13:
-			c = '0';
-			break;
-		default:
-			c = 0;
-	}
-
-	if( c > 0 ){
-
-		lcd_send_data(c);
-		*(ptr++) = c;
-	}
-}
-
-double get_input(){
-	char* tmp;
-	*ptr = '\0';
-	double ret = strtod(input,&tmp);
-	if( ptr != tmp ){
-		blink();
-	}
-
-	ptr = input;
-	return ret;
-}
 
 /* USER CODE END 0 */
 
@@ -326,7 +127,7 @@ int main(void)
   set_ANSTRA_pos();
 
   int k;
-  int tmp;
+  int tmp = -1;
 
   /* USER CODE END 2 */
 
@@ -335,9 +136,7 @@ int main(void)
 
   while (1)
   {
-	  sprintf((char*)TxData, "SEND_ANGLES s1 %d; s2 %d; SEND_TARGET latitude %f; longitude %f; height %f; \r\n",
-			  da, ha, target_latitude, target_longitude, target_height);
-	  CDC_Transmit_FS(TxData, strlen((char*)TxData));
+	  send_data();
 
 	  if( change ){
 		  height_angle(ha);
@@ -347,97 +146,39 @@ int main(void)
 		  change = 0;
 	  }
 
+	  if( change_t ){
+		  	  target_to_angle();
+	  		  height_angle(ha);
+	  		  direction_angle(da);
+	  		  if( status == 1 )
+	  			  display_angle();
+	  		  change_t = 0;
+	  	  }
+
 	  k = keyboard();
 	  if( k >= 0 && tmp == -1 ){
-		  if( status == 0 ){
-			  if( k == 15 ){
-			  		double ret = get_input();
+		  blink();
+		  if( k == 15 ){
+			  if( status == 0 )
+				  get_ANSTRA_pos( get_input() );
 
-			  		if( pos_stat == 0 )
-			  			latitude = ret;
+			  if( status == 2 )
+				  get_ANSTRA_angle( get_input() );
 
-			  		if( pos_stat == 1 )
-			  			longitude = ret;
-
-			  		if( pos_stat == 2 )
-			  			direction = ret;
-
-			  		pos_stat++;
-			  		if( pos_stat == 3 ){
-			  			status = 1;
-			  			lcd_display(0b100);
-			  			height_angle(ha);
-			  			direction_angle(da);
-			  			display_angle();
-			  		}
-
-			  		lcd_line(pos_stat+1);
-			  	}
-			  save_input(k);
-		  }
-		  if( status == 2 ){
-			  if( k == 15 ){
-				  double ret = get_input();
-
-				  if( pos_stat == 0 )
-					  da = ret;
-
-				  if( pos_stat == 1 )
-					  ha = ret;
-
-				  pos_stat++;
-				  if( pos_stat == 2 ){
-					  height_angle(ha);
-					  direction_angle(da);
-					  display_angle();
-					  status = 1;
-					  lcd_display(0b100);
-				  }
-
-				  lcd_line( pos_stat+1 );
-			  }
-			  save_input(k);
-		  }
-		  if( status == 3 ){
-			  if( k == 15 ){
-				  double ret = get_input();
-
-				  if( pos_stat == 0 )
-					  target_latitude = ret;
-
-				  if( pos_stat == 1 )
-					  target_longitude = ret;
-
-				  if( pos_stat == 2 )
-					  target_height= ret;
-
-				  pos_stat++;
-				  if( pos_stat == 3 ){
-					  target_to_angle();
-					  display_angle();
-					  status = 1;
-					  lcd_display(0b100);
-				  }
-
-				  lcd_line( pos_stat+1 );
-			  }
-			  save_input(k);
+			  if( status == 3 )
+				  get_ANSTRA_target( get_input() );
 		  }
 		  if( status == 1 ){
 			  if( k == 3 ){
-				  status = 2;
-				  lcd_display(0b111);
-				  pos_stat = 0;
 				  set_ANSTRA_angle();
 			  }
 
 			  if( k == 7 ){
 				  set_ANSTRA_target();
-			  	  pos_stat = 0;
-				  status = 3;
-				  lcd_display(0b111);
 			  }
 		  }
+		  else
+			  save_input(k);
 	  }
 
 	  tmp = k;

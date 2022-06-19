@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usbd_cdc_if.h"
 #include "lcd.h"
 #include "klawiatura.h"
 #include "utillib.h"
@@ -32,6 +33,8 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,19 +57,17 @@ I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim3;
 
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
 char change = 0;
 char change_t = 0;
 
-//
-//// USB?
-//char dataT[70];
-//uint32_t Len;
-//uint8_t buffer[64];
-
+uint8_t RxData[101];
+uint8_t RxDataIndex=0;
+uint8_t USB_TxData[111];
+char test[] = "pierwszy testowy komunikat";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,14 +75,30 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_USART2_UART_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	blink();
+	if(huart->Instance==USART3){
 
+		if((RxData[RxDataIndex] == (int)'#') && (RxData[0] == (int)'$')){
+			RxData[RxDataIndex] = 0;
+			RxDataIndex=0;
+			sprintf((char*)USB_TxData, "odebrano: %s\r\n", (char*)(RxData+1));
+			CDC_Transmit_FS(USB_TxData, strlen((char*)USB_TxData));
+		}
+		else{
+			RxDataIndex++;
+		}
+		if(RxDataIndex>=100){RxDataIndex=0;}
+		HAL_UART_Receive_IT(&huart3, &RxData[RxDataIndex], 1);
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -117,9 +134,9 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM3_Init();
   MX_I2C1_Init();
-  MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UART_Receive_IT(&huart3, &RxData[RxDataIndex], 1);
   init_keyboard();
   init_PWM();
   lcd_init();
@@ -140,7 +157,7 @@ int main(void)
 
   while (1)
   {
-	  send_data();
+	  //send_data();
 
 	  if( change ){
 		  height_angle(ha);
@@ -162,6 +179,7 @@ int main(void)
 	  k = keyboard();
 	  if( k >= 0 && tmp == -1 ){
 		  blink();
+		  if(k == 11){CDC_Transmit_FS((uint8_t*)test, strlen(test));}
 		  if( k == 15 ){
 			  if( status == 0 )
 				  get_ANSTRA_pos( get_input() );
@@ -338,35 +356,35 @@ static void MX_TIM3_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART3 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART3_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
+  /* USER CODE BEGIN USART3_Init 0 */
 
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE END USART3_Init 0 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
+  /* USER CODE BEGIN USART3_Init 1 */
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 9600;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  /* USER CODE BEGIN USART3_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END USART3_Init 2 */
 
 }
 

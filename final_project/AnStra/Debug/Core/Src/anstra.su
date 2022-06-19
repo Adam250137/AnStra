@@ -1,10 +1,10 @@
-anstra.c:34:6:height_angle	32	static
-anstra.c:41:6:direction_angle	32	static
+anstra.c:34:6:height_angle	8	static
+anstra.c:41:6:direction_angle	8	static
 anstra.c:47:6:display_angle	8	static
-anstra.c:57:6:set_ANSTRA_pos	16	static
+anstra.c:57:6:set_ANSTRA_pos	8	static
 anstra.c:69:6:set_ANSTRA_angle	8	static
 anstra.c:81:6:set_ANSTRA_target	8	static
-anstra.c:93:6:get_ANSTRA_pos	24	static
+anstra.c:93:6:get_ANSTRA_pos	8	static
 anstra.c:115:6:get_ANSTRA_angle	16	static
-anstra.c:134:6:get_ANSTRA_target	24	static
-anstra.c:157:6:target_to_angle	64	static
+anstra.c:157:6:target_to_angle	56	static
+anstra.c:134:6:get_ANSTRA_target	8	static

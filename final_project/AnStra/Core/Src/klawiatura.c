@@ -5,6 +5,7 @@
  *      Author: asliw
  */
 #include "klawiatura.h"
+#include "main.h"
 
 // klawiatura
 int K[8];

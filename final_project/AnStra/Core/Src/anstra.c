@@ -164,10 +164,11 @@ void target_to_angle(){
 //
 	ha = acos( satX/( sqrt( satX*satX+satY*satY+satZ*satZ ) ) )/M_PI*180.0;
 	da = atan(satZ/satY)/M_PI*180.0 - direction;
-	if( satY < 0 )
+	if( satY < 0 ){
 		if( da > 0 )
 			da -= 180;
 		else
 			da += 180;
+	}
 }
 
